@@ -1,0 +1,262 @@
+#Mempersiapkan envinronment
+Menyiapkan jupyter notebook, cari di google aja, buka jupyter lab
+#Melakukan instalasi dependencies
+Yakni paket atau modul yang digunakan untuk menjalankan formula atau perintah
+* Pip install pandas Digunakan untuk manipulasi dan analisis data
+* Pip install seaborn visualisasi data statistik
+* Pip install matplotlib.pyplot plotting Python standar.
+* Pip install translate menerjemahkan teks 
+* Pip install tweet-preprocessor memproses teks yang berasal dari tweet, termasuk menghapus URL, mention, hashtag,
+* Pip install textblob memproses teks, termasuk polarity index
+* Pip install wordcloud gambaran visual tentang kata-kata yang paling umum dalam teks
+* Pip install nltk membangun program Python untuk bekerja dengan data bahasa manusia, morfologi
+#Data Crawling
+Melakukan pengambilan data primer dari social media, menyimpan dalam bentuk file xlsx atau csv 
+Link sudah disediakan https://colab.research.google.com/drive/1K1evZqANLPmqepmqsPH5itRgRAWZAdKy?authuser=0#scrollTo=iIRQpYINQrUh
+
+#import
+import pandas as pd
+import re
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+1)Cleansing Data
+#Aksesi
+fileLocation = "Data/data_madutj.xlsx"
+df = pd.read_excel(fileLocation, sheet_name="data_madutj", index_col=0)
+df
+
+#Pembuatan DataFrame
+df=df[['full_text','username']]
+df
+
+#Cek jumlah data
+df.shape
+
+#Cek duplikasi data
+df=df.drop_duplicates(subset=['full_text'])
+df.duplicated().sum()
+
+#data missing value
+df=df.dropna()
+df.isnull().sum()
+df.shape
+
+
+
+
+
+
+
+#Delete inappropriate chars
+def clean_twitter_text(text):
+    text=re.sub("@[A-Za-z0-9]+","", text)
+    text=re.sub(r"(?:\@|http?\://|https?://|www)\S+", "",text)
+    
+    return text
+
+df['full_text']=df['full_text'].apply(clean_twitter_text)
+
+#Cek
+df['full_text']=df['full_text'].str.lower()
+
+#Cek
+Df
+
+2)Preprocessing
+#Normalisasi
+//mengganti kata-kata yang singkatan menjadi bentuk lengkapnya.
+
+#StopWord
+Menghilangkan kata-kata umum yang tidak memberikan banyak informasi tentang sentimen, seperti "dan", "atau", "saya", "kamu",
+
+#Tokenize
+Memecah teks menjadi token atau kata-kata individual. Ini memungkinkan untuk menganalisis teks lebih lanjut secara lebih terperinci
+
+#Stemming
+Ini membantu dalam mengurangi variasi kata yang sama dengan akar kata yang sama. Misalnya, "berlari", "berlari", dan "berlari" semuanya dapat diubah menjadi "lari".
+
+#Translate
+Menerjemahkan teks ke dalam bahasa yang ditentukan
+
+#Normalisasi
+norm={"yg":"yang","spt":"seperti","utk": "untuk","nggak": "tidak","mantab": "keren","dr": "dari"}
+
+def normalisasi(str_text):
+    for i in norm:
+        str_text=str_text.replace(i, norm[i])
+        
+    return str_text
+
+df['full_text']=df['full_text'].apply(lambda x:normalisasi(x))
+df
+
+
+
+
+
+
+
+#StopWord
+import Sastrawi
+from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory, StopWordRemover, ArrayDictionary
+more_stop_words = ["tidak"]
+
+stop_words = StopWordRemoverFactory().get_stop_words()
+stop_words.extend(more_stop_words)
+
+new_array = ArrayDictionary(stop_words)
+stop_words_remover_new = StopWordRemover(new_array)
+
+def stopword(str_text):
+    str_text = stop_words_remover_new.remove(str_text)
+    
+    return str_text
+
+df['full_text'] = df['full_text'].apply(lambda x: stopword(x))
+df.head()
+
+#Tokenize
+tokenized = df['full_text'].apply(lambda x:x.split())
+tokenized
+
+#Stemming
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+
+def stemming(text_cleaning):
+    factory = StemmerFactory()
+    stemmer = factory.create_stemmer()
+    do = []
+    for w in text_cleaning:
+        dt = stemmer.stem(w)
+        do.append(dt)
+    d_clean = []
+    d_clean = " ".join(do)
+    print(d_clean)
+    return d_clean
+
+tokenized = tokenized.apply(stemming)
+tokenized.to_csv("Data/data_madutjtokenized.csv", index=False)
+
+#cek
+data = pd.read_csv("Data/data_madutj_token1.csv", encoding='latin1')
+data.head()
+
+
+
+
+
+
+
+
+#Translate
+from translate import Translator
+
+def convert_eng(tweet):
+    translator = Translator(to_lang="en", from_lang="id")
+    translation = translator.translate(tweet)
+    return translation
+
+data['tweet_english'] = data['full_text'].apply(convert_eng)
+data.to_csv("Data/data_madutjeng.csv")
+
+atau
+
+from googletrans import Translator
+
+def translate_to_english(tweet):
+    translator = Translator()
+    translated = translator.translate(tweet, dest='en')
+    return translated.tweet
+
+data['tweet_english'] = data['full_text'].apply(	)
+data.to_csv("Data/data_madutjeng.csv")
+
+3)Analisa sentiment
+import preprocessor as p
+from textblob import TextBlob 
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+
+nltk.download('punkt')
+
+#Polarity Check
+data_tweet = list(data['tweet_english'])
+polaritas = 0
+
+status = []
+total_positif = total_negatif = total_netral = total = 0
+
+for i, tweet in enumerate(data_tweet):
+    analysis = TextBlob(tweet)
+    polaritas += analysis.polarity
+    if analysis.sentiment.polarity > 0.0:
+        total_positif += 1
+        status.append('positive')
+    elif analysis.sentiment.polarity == 0.0:
+        total_netral += 1
+        status.append('Netral')
+    else:
+        total_negatif += 1
+        status.append('Negative')
+    total += 1
+
+print(f'Result Analysis:\nPositive = {total_positif}\nNetral = {total_netral}\nNegative = {total_negatif}')
+print(f'\nData Total : {total}')
+
+#Classifier
+data['classified'] = status
+data
+
+#Pembuatan wordcloud
+from wordcloud import WordCloud, STOPWORDS
+
+def plot_cloud(wordcloud):
+    plt.figure(figsize=(10, 8))
+    plt.imshow(wordcloud, interpolation = 'bilinear')
+    plt.axis('off')
+    plt.show()
+
+all_words = ' '.join([tweets for tweets in data['full_text']])
+
+wordcloud = WordCloud(
+    width=3000,
+    height=2000,
+    random_state=3,
+    background_color='black',
+    colormap='Blues_r',
+    collocations=False,
+    stopwords=STOPWORDS
+).generate(all_words)
+
+plot_cloud(wordcloud)    
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+#Visualisasi
+sns.set_theme()
+
+labels = ['Positive', 'Negative', 'Neutral']
+counts = [total_positif, total_negatif, total_netral]
+
+def show_bar_chart(labels, counts, title):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    bars = ax.bar(labels, counts, color=['#2394f7', '#f72323', '#fac343'])
+
+    for bar, count in zip(bars, counts):
+        height = bar.get_height()
+        ax.annotate(f'{count}', xy=(bar.get_x() + bar.get_width() / 2, height), 
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    ax.set_xlabel('Sentiment')
+    ax.set_ylabel('Counts')
+    ax.set_title(title)
+
+    plt.show()
+
+show_bar_chart(labels, counts, "Sentiment Distribution of Product")
